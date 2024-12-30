@@ -1,0 +1,169 @@
+{% load custom_tags %}
+<!-- Bootstrap Table (в правильном порядке) -->
+
+<div class="container py-4">
+    <!-- Форма заявления -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0">Новое заявление</h4>
+        </div>
+        <div class="card-body">
+            <form id="zayavlenieForm" method="post" action="{% url 'save_zayavlenie_data' %}">
+                {% csrf_token %}
+                <input type="hidden" name="selected_lichnoe_delo" value="{{ lichnoe_delo_id }}">
+                <input type="hidden" name="napravlenie_text" value="" id="napravlenie_text">
+                
+                <div class="row">
+                    {% for field in zayavlenie_form %}
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {% if field.name == 'data_podachi' %}
+                                {{ field|add_class:"form-control datepicker" }}
+                            {% elif field.name == 'napravlenie' %}
+                                {{ field|add_class:"form-control" }}
+                            {% else %}
+                                {{ field|add_class:"form-control" }}
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Контейнер для полей экзаменов -->
+                <div id="predmety_container" style="display: none;">
+                    <h5 class="text-info mb-3">Результаты экзаменов</h5>
+                    <div class="d-flex flex-row justify-content-between">
+                        {% for form in rezultat_forms %}
+                            <div class="flex-fill mx-2">
+                                <div class="card border-info">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="card-title mb-0">Результат #{{ forloop.counter }}</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        {% for field in form %}
+                                            <div class="form-group mb-3">
+                                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                                {{ field }}
+                                                {% if field.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {{ field.errors }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-info text-white" name="save_zayavlenie">
+                        <i class="fas fa-save me-2"></i> Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Таблица существующих заявлений -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Список заявлений</h5>
+        </div>
+        <div class="card-body">
+            <table id="zayavlenieTable"
+                    data-toggle="table"
+                    data-search="true"
+                    data-search-align="left"
+                    data-show-columns="true"
+                    data-show-refresh="true"
+                    data-filter-control="true"
+                    data-filter-control-visible="true"
+                    data-pagination="true"
+                    data-page-list="[10, 25, 50, 100, all]"
+                    data-search-on-enter-key="false"
+                    data-filter-control-visible="true"
+                    data-side-pagination="client"
+             class="table table-striped">
+                <thead>
+                    <tr>
+                        <th data-field="napravlenie" data-sortable="true" data-filter-control="input">Направление</th>
+                        <th data-field="summa" data-sortable="true" data-filter-control="input">Сумма баллов</th>
+                        <th data-field="prioritet" data-sortable="true" data-filter-control="select">Приоритет</th>
+                        <th data-field="gruppa" data-sortable="true" data-filter-control="input">Конкурсная группа</th>
+                        <th data-field="data" data-sortable="true" data-filter-control="datepicker">Дата подачи</th>
+                        <th data-field="actions" data-formatter="actionFormatter" data-events="actionEvents">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for zayavlenie in zayavleniya %}
+                        <tr>
+                            <td>{{ zayavlenie.napravlenie }}</td>
+                            <td>{{ zayavlenie.summa_ballov }}</td>
+                            <td>{{ zayavlenie.prioritet }}</td>
+                            <td>{{ zayavlenie.pk_konkursnaya_gruppa.naim }}</td>
+                            <td>{{ zayavlenie.data_podachi|date:"d.m.Y" }}</td>
+                            <td>
+                                <button type="button" 
+                                class="btn btn-danger btn-sm delete-zayavlenie" 
+                                data-id="{{zayavlenie.pk_zayavlenie}}"
+                                title="Удалить">
+                            <i class="bi bi-trash"></i> Удалить
+                        </button>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">Нет заявлений</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<!--
+<script>
+    $(document).ready(function() {
+        // Инициализация таблицы
+        $('#zayavlenieTable').bootstrapTable({
+            locale: 'ru-RU',
+            icons: {
+                refresh: 'fas fa-sync',
+                toggle: 'fas fa-list',
+                columns: 'fas fa-columns'
+            }
+        });
+
+        // Инициализация datepicker для полей формы и фильтров
+        $('.datepicker').datepicker({
+            format: 'dd.mm.yyyy',
+            language: 'ru',
+            autoclose: true
+        });
+
+        // Обработчик кнопки сброса фильтров
+        $('#clearFilters').click(function() {
+            $('#zayavlenieTable').bootstrapTable('clearFilterControl');
+        });
+
+        // Обработчики событий для кнопок редактирования и удаления
+        $('.edit-zayavlenie').click(function() {
+            var id = $(this).data('id');
+            // Добавьте логику редактирования
+        });
+
+        $('.delete-zayavlenie').click(function() {
+            var id = $(this).data('id');
+            // Добавьте логику удаления
+        });
+    });
+    
+    </script>
+-->

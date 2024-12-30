@@ -1,0 +1,17 @@
+/* Специфичные стили для страницы документов */
+.select2-container--default .select2-selection--single {
+    border-color: #ced4da;
+    height: calc(1.5em + 0.75rem + 2px);
+}
+
+/* Datepicker специфичные стили */
+.datepicker-dropdown {
+    z-index: 1060 !important;
+}
+
+/* Специфичные стили для фильтров */
+.filter-control input, 
+.filter-control select {
+    width: 100%;
+    padding: 4px 8px;
+}

@@ -1,0 +1,328 @@
+{% load custom_tags %}
+
+
+<!-- Оставьте здесь только HTML-структуру -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Добавление документа</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Контейнер для уведомлений -->
+                    <div id="alertContainer"></div>                    
+                    <form id="dokument_form" class="ajax-form" method="post" action="{% url 'save_dokument' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="selected_fizlitso" id="selected_fizlitso" value="{{ fizlitso_id }}">
+                        <div class="row">
+                            {% for field in dokument_form %}
+                                <div class="col-md-4 mb-3">
+                                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                    {% if field.name == 'data_vydachi' or field.name == 'data_rozhdeniya' %}
+                                        {{ field|add_class:"form-control datepicker" }}
+                                    {% else %}
+                                        {{ field|add_class:"form-control" }}
+                                    {% endif %}
+                                    {% if field.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ field.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-info text-white" name="save_dokument">
+                                <i class="fas fa-save me-2"></i>Сохранить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Список документов</h5>
+                </div>
+                <div class="card-body">
+                    <div id="filterControls" class="mb-3">
+                        <!-- Здесь будут размещены фильтры -->
+                    </div>
+                    <div class="table-responsive">
+                        <table id="dokumentTable" 
+                        class="table table-striped"
+                        data-toggle="toggle"
+                        data-search="true"
+                        data-filter-control="true"
+                        data-filter-control-visible="true"
+                        data-show-columns="true"
+                        data-show-refresh="true"
+
+                        data-show-toggle="true"
+                        data-filter-control="true"
+                        data-pagination="true"
+                        data-page-list="[10, 25, 50, 100, all]"
+                        data-search-on-enter-key="false"
+                        data-filter-control-visible="true"
+                        data-side-pagination="client">
+                     <thead>
+                         <tr>
+                            <th data-field="vid" data-filter-control="select" data-sortable="true">Вид документа</th>
+                            <th data-field="seriya" data-filter-control="input" data-sortable="true">Серия</th>
+                            <th data-field="nomer" data-filter-control="input" data-sortable="true">Номер</th>
+                            <th data-field="kem_vydan" data-filter-control="input" data-sortable="true">Кем выдан</th>
+                            <th data-field="kod_podrazd" data-filter-control="input" data-sortable="true">Код подр.</th>
+                            <th data-field="data_vydachi" data-filter-control="datepicker" data-sortable="true">Дата выдачи</th>
+                            <th data-field="strana" data-filter-control="input" data-sortable="true">Страна</th>
+                            <th data-field="fio" data-filter-control="input" data-sortable="true">ФИО в документе</th>
+                            <th data-field="data_rozhd" data-filter-control="datepicker" data-sortable="true">Дата рождения</th>
+                            <th data-field="pol" data-filter-control="select" data-sortable="true">Пол</th>
+                            <th data-field="mesto_rozhd" data-filter-control="input" data-sortable="true">Место рождения</th>
+                            <th data-field="actions">Действия</th>
+                         </tr>
+                     </thead>
+                            <tbody>
+                                {% for item in dokument_data %}
+                                <tr>
+                                    <td>{{ item.pk_vid_dokumenta.naim|default:"-" }}</td>
+                                    <td>{{ item.seriya|default:"-" }}</td>
+                                    <td>{{ item.nomer }}</td>
+                                    <td>{{ item.kem_vydan|default:"-" }}</td>
+                                    <td>{{ item.kod_podrazd|default:"-" }}</td>
+                                    <td>{{ item.data_vydachi|date:"d.m.Y" }}</td>
+                                    <td>{{ item.strana|default:"-" }}</td>
+                                    <td>{{ item.fio_v_dokumente }}</td>
+                                    <td>{{ item.data_rozhdeniya|date:"d.m.Y"|default:"-" }}</td>
+                                    <td>{{ item.pol|default:"-" }}</td>
+                                    <td>{{ item.mesto_rozhdeniya|default:"-" }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-info btn-sm edit-dokument" data-id="{{ item.pk_dokument }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-danger btn-sm delete-dokument" data-id="{{ item.pk_dokument }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Обработчик отправки формы документа
+    $('#dokument_form').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const form = $(this);
+        
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Показываем уведомление об успехе
+                    $('#alertContainer').html(
+                        '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                        'Документ успешно сохранен' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                        '</div>'
+                    );
+                    
+                    // Очищаем форму
+                    form[0].reset();
+                    
+                    // Возвращаем кнопку в исходное состояние
+                    form.find('button[type="submit"]').html('<i class="fas fa-save me-2"></i>Сохранить');
+                    
+                    // Удаляем кнопку отмены и скрытое поле dokument_id
+                    form.find('.btn-cancel-edit').remove();
+                    form.find('input[name="dokument_id"]').remove();
+                    
+                    // Обновляем таблицу
+                    if ($('#dokumentTable').length) {
+                        $('#dokumentTable').bootstrapTable('refresh');
+                    }
+                } else {
+                    // Показываем уведомление об ошибке
+                    $('#alertContainer').html(
+                        '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                        (response.error || 'Произошла ошибка при сохранении документа') +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                        '</div>'
+                    );
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#alertContainer').html(
+                    '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                    'Произошла ошибка при сохранении документа: ' + error +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                    '</div>'
+                );
+            }
+        });
+        
+        return false;
+    });
+
+    $('#dokumentTable').bootstrapTable({
+        locale: 'ru-RU',
+        icons: {
+            refresh: 'fas fa-sync',
+            toggle: 'fas fa-list',
+            columns: 'fas fa-columns'
+        }
+    });
+
+    // Инициализация datepicker для полей фильтров
+    $('.datepicker').datepicker({
+        format: 'dd.mm.yyyy',
+        language: 'ru',
+        autoclose: true
+    });
+
+    // Обработчик кнопки сброса фильтров
+    $('#clearFilters').click(function() {
+        $('#dokumentTable').bootstrapTable('clearFilterControl');
+    });
+
+    // Обработчик удаления документа
+    $(document).on('click', '.delete-dokument', function() {
+        const dokumentId = $(this).data('id');
+        if (confirm('Вы уверены, что хотите удалить этот документ?')) {
+            $.ajax({
+                url: '/delete_dokument/',
+                type: 'POST',
+                data: {
+                    dokument_id: dokumentId,
+                    csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#alertContainer').html(
+                            '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                            'Документ успешно удален' +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                            '</div>'
+                        );
+                        // Обновляем таблицу
+                        $('#dokumentTable').bootstrapTable('refresh');
+                    } else {
+                        $('#alertContainer').html(
+                            '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                            (response.error || 'Произошла ошибка при удалении документа') +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                            '</div>'
+                        );
+                    }
+                }
+            });
+        }
+    });
+
+    // Обработчик редактирования документа
+    $(document).on('click', '.edit-dokument', function() {
+        const dokumentId = $(this).data('id');
+        
+        $.ajax({
+            url: '/get_dokument_data/',
+            type: 'GET',
+            data: { dokument_id: dokumentId },
+            success: function(response) {
+                if (response.success) {
+                    const data = response.data;
+                    console.log('Полученные данные:', data); // Для отладки
+                    
+                    // Заполняем форму данными
+                    const form = $('#dokument_form');
+                    
+                    // Вид документа
+                    form.find('select[name="pk_vid_dokumenta"]').val(data.pk_vid_dokumenta).trigger('change');
+                    
+                    // Текстовые поля
+                    form.find('input[name="seriya"]').val(data.seriya);
+                    form.find('input[name="nomer"]').val(data.nomer);
+                    form.find('input[name="kem_vydan"]').val(data.kem_vydan);
+                    form.find('input[name="kod_podrazd"]').val(data.kod_podrazd);
+                    form.find('input[name="strana"]').val(data.strana);
+                    form.find('input[name="fio_v_dokumente"]').val(data.fio_v_dokumente);
+                    form.find('input[name="mesto_rozhdeniya"]').val(data.mesto_rozhdeniya);
+                    
+                    // Даты (преобразование формата)
+                    if (data.data_vydachi) {
+                        form.find('input[name="data_vydachi"]').val(data.data_vydachi);
+                    }
+                    if (data.data_rozhdeniya) {
+                        form.find('input[name="data_rozhdeniya"]').val(data.data_rozhdeniya);
+                    }
+                    
+                    // Пол
+                    if (data.pol) {
+                        form.find('select[name="pol"]').val(data.pol).trigger('change');
+                    }
+                    
+                    // Добавляем ID документа в скрытое поле
+                    if (!form.find('input[name="dokument_id"]').length) {
+                        form.append('<input type="hidden" name="dokument_id">');
+                    }
+                    form.find('input[name="dokument_id"]').val(dokumentId);
+                    
+                    // Прокручиваем страницу к форме
+                    $('html, body').animate({
+                        scrollTop: form.offset().top - 100
+                    }, 500);
+                    
+                    // Изменяем текст кнопки сохранения
+                    form.find('button[type="submit"]').html('<i class="fas fa-save me-2"></i>Сохранить изменения');
+                    
+                    // Добавляем кнопку отмены редактирования
+                    if (!form.find('.btn-cancel-edit').length) {
+                        form.find('button[type="submit"]').after(
+                            '<button type="button" class="btn btn-secondary ms-2 btn-cancel-edit">' +
+                            '<i class="fas fa-times me-2"></i>Отменить</button>'
+                        );
+                    }
+                } else {
+                    $('#alertContainer').html(
+                        '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                        (response.error || 'Произошла ошибка при загрузке данных документа') +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                        '</div>'
+                    );
+                }
+            }
+        });
+    });
+
+    // Обработчик отмены редактирования
+    $(document).on('click', '.btn-cancel-edit', function() {
+        const form = $('#dokument_form');
+        form[0].reset();
+        form.find('input[name="dokument_id"]').remove();
+        form.find('button[type="submit"]').html('<i class="fas fa-save me-2"></i>Сохранить');
+        $(this).remove();
+    });
+});
+</script>
+
+<!-- Контейнер для ошибок формы -->
+<div id="dokumentFormErrors" class="mb-3" style="display: none;"></div>
+
+

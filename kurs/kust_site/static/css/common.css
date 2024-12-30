@@ -1,0 +1,114 @@
+:root {
+    --primary-color: #17a2b8;
+    --primary-dark: #138496;
+    --primary-hover: #199d76;
+    --primary-light: #e3fcf5;
+    --light-hover: rgba(23, 162, 184, 0.1);
+}
+
+/* Card styles */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: none;
+    margin-bottom: 1.5rem;
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    background-color: var(--primary-color) !important;
+    color: white;
+    border-bottom: 0;
+    border-top-left-radius: 0.5rem !important;
+    border-top-right-radius: 0.5rem !important;
+}
+
+/* Button styles */
+.btn-info {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+.btn-info:hover {
+    background-color: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
+}
+
+/* Table styles */
+.table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid var(--primary-color) !important;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--light-hover);
+}
+
+/* Form styles */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25);
+}
+
+/* Bootstrap Table specific styles */
+.bootstrap-table .fixed-table-toolbar .filter-control input,
+.bootstrap-table .fixed-table-toolbar .filter-control select {
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 14px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .bootstrap-table .fixed-table-toolbar {
+        flex-direction: column;
+    }
+    
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .table thead th {
+        white-space: nowrap;
+    }
+} 
+
+/* Стили для селектора специальностей */
+.specialnost-select {
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.specialnost-select:focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: var(--primary-color);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25);
+}
+
+/* Стили для select2 с классом specialnost-select */
+.select2-container--default .select2-selection--single.specialnost-select {
+    height: calc(1.5em + 0.75rem + 2px);
+    border: 1px solid #ced4da;
+}
+
+.select2-container--default .select2-selection--single.specialnost-select .select2-selection__rendered {
+    line-height: calc(1.5em + 0.75rem);
+    padding-left: 0.75rem;
+}
+
+.select2-container--default .select2-selection--single.specialnost-select .select2-selection__arrow {
+    height: calc(1.5em + 0.75rem);
+} 

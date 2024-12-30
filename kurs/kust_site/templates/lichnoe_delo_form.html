@@ -1,0 +1,7 @@
+<h3>Создание личного дела</h3>
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+</form>
+<a href="{% url 'create_zayavlenie' %}" class="btn btn-secondary {% if not valid_previous %}disabled{% endif %}">Далее</a>

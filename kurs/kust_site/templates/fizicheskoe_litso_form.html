@@ -1,0 +1,35 @@
+<h3>Создание физического лица</h3>
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+</form>
+<a href="{% url 'create_lichnoe_delo' %}" class="btn btn-secondary {% if not form.is_valid %}disabled{% endif %}">Далее</a>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                {% for field in fizicheskoe_fields %}
+                    <th>{{ field.verbose_name }}</th>
+                {% endfor %}
+                <th>Редактировать</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in fizicheskoe_data %}
+                <tr>
+                    {% for field in fizicheskoe_fields %}
+                        <td>{{ item|get_field_value:field.name }}</td>
+                    {% endfor %}
+                    <td>
+                        <a href="{% url 'dynamic_view_edit' model_name='FizicheskoeLitso' pk=item.pk %}" class="btn btn-warning">Редактировать</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="{{ fizicheskoe_fields_count_plus_one }}">Нет данных для отображения.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>

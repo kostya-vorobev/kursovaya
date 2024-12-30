@@ -1,0 +1,399 @@
+{% load custom_tags %}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ model_name }}</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #20c997;
+            --primary-dark: #1ba37e;
+            --primary-light: #e3fcf5;
+            --primary-hover: #199d76;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 60px;
+        }
+
+        .navbar {
+            background-color: var(--primary-color);
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .navbar-brand, .navbar-light .navbar-brand {
+            color: white !important;
+        }
+
+        .table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .footer {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .btn-group {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            margin: 5px;
+            transition: all 0.3s;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(32, 201, 151, 0.2);
+        }
+
+        .card {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            border: none;
+        }
+
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+
+        .form-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .form-container .card {
+            border: none;
+            margin-bottom: 0;
+        }
+
+        .form-container .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 8px 8px 0 0;
+            padding: 1rem 1.5rem;
+        }
+
+        .form-container .card-body {
+            padding: 1.5rem;
+        }
+
+        .form-control {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(32, 201, 151, 0.15);
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23343a40' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 8px 10px;
+        }
+
+        .btn-primary, .btn-secondary {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+            margin-left: 0.5rem;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Стили для обязательных полей */
+        .required-field::after {
+            content: "*";
+            color: #dc3545;
+            margin-left: 4px;
+        }
+
+        /* Стили для меток полей */
+        .col-form-label {
+            color: #495057;
+            font-weight: 500;
+        }
+
+        /* Отступы для кнопок формы */
+        .form-buttons {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .table-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Стили для DataTables */
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: white !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: var(--primary-light) !important;
+            border-color: var(--primary-color) !important;
+            color: var(--primary-color) !important;
+        }
+
+        .btn-warning {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+            color: white;
+        }
+
+        /* Стили для формы */
+        .form-text {
+            color: #6c757d;
+        }
+
+        /* Анимации */
+        .card, .btn, .form-control {
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 8px rgba(32, 201, 151, 0.1);
+        }
+
+        /* Переопределяем цвет bg-primary */
+        .bg-primary {
+            background-color: var(--primary-color) !important;
+        }
+
+        /* Для ховера, если нужно */
+        .bg-primary:hover {
+            background-color: var(--primary-dark) !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Приемная комиссия</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body">
+                <h4>Быстрый доступ к таблицам:</h4>
+                <div class="btn-group flex-wrap" role="group">
+                    <a href="/data/Zayavlenie/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-file-alt"></i> Заявления
+                    </a>
+                    <a href="/data/LichnoeDelo/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-folder"></i> Личные дела
+                    </a>
+                    <a href="/data/FizicheskoeLitso/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-user"></i> Физические лица
+                    </a>
+                    <a href="/data/Dokument/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-id-card"></i> Документы
+                    </a>
+                    <a href="/data/VidDokumenta/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-list"></i> Виды документов
+                    </a>
+                    <a href="/data/KonkursnayaGruppa/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-users"></i> Конкурсные группы
+                    </a>
+                    <a href="/data/Spetsialnost/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-graduation-cap"></i> Специальности
+                    </a>
+                    <a href="/data/Predmet/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-book"></i> Предметы
+                    </a>
+                    <a href="/data/PredmetSpetsialnost/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-link"></i> Предметы-Специальности
+                    </a>
+                    <a href="/data/Rezultat/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-star"></i> Результаты
+                    </a>
+                    <a href="/data/TipOtsenki/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-check"></i> Типы оценок
+                    </a>
+                    <a href="/data/Fakultet/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-university"></i> Факультеты
+                    </a>
+                    <a href="/data/FormaObucheniya/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-chalkboard-teacher"></i> Формы обучения
+                    </a>
+                    <a href="/data/KategoriyaObucheniya/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-layer-group"></i> Категории обучения
+                    </a>
+                    <a href="/data/Kcp/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-calculator"></i> КЦП
+                    </a>
+                    <a href="/data/Prikaz/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-file-signature"></i> Приказы
+                    </a>
+                    <a href="/data/StrokaPrikaza/" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-list-ol"></i> Строки приказов
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">{% if editing %}Редактировать запись{% else %}Добавить новую запись{% endif %}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        {% for field in form %}
+                        <div class="form-group row">
+                            <label for="{{ field.id_for_label }}" class="col-sm-3 col-form-label">
+                                {{ field.label }}
+                                {% if field.field.required %}
+                                    <span class="text-danger">*</span>
+                                {% endif %}
+                            </label>
+                            <div class="col-sm-9">
+                                {{ field|addclass:'form-control' }}
+                                {% if field.help_text %}
+                                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                                {% endif %}
+                                {% if field.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ field.errors|join:", " }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div class="form-group row">
+                            <div class="col-sm-9 offset-sm-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save mr-1"></i>
+                                    {% if editing %}Обновить{% else %}Сохранить{% endif %}
+                                </button>
+                                <a href="javascript:history.back()" class="btn btn-secondary ml-2">
+                                    <i class="fas fa-times mr-1"></i>
+                                    Отмена
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="table-responsive">
+                <table id="dynamicTable" class="table table-striped">
+                    <thead>
+                        <tr>
+                            {% for field in fields %}
+                                    <th>{{ field.verbose_name }}</th>
+                            {% endfor %}
+                            <th>Редактировать</th> <!-- Новая колонка для действий -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in data %}
+                            <tr>
+                                {% for field in fields %}
+                                    <td>{% get_attr item field.name %}</td>
+                                {% endfor %}
+                                <td>
+                                    <a href="{% url 'dynamic_view_edit' model_name=model_name pk=item.pk %}" class="btn btn-warning">Редактировать</a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="{{ fields_count_plus_one }}">Нет данных для отображения.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p class="mb-0">&copy; 2024 Приемная комиссия. Все права защищены.</p>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#dynamicTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Russian.json"
+                },
+                "searching": true,
+                "ordering": true,
+                "paging": true,
+                "responsive": true
+            });
+        });
+    </script>
+</body>
+</html>

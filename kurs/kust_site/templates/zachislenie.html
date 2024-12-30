@@ -1,0 +1,620 @@
+{% load custom_tags %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Зачисление</title>
+    
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/bootstrap-table@1.21.4/dist/bootstrap-table.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/bootstrap-table@1.21.4/dist/extensions/filter-control/bootstrap-table-filter-control.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+    
+    <!-- Bootstrap Table -->
+    <script src="https://unpkg.com/bootstrap-table@1.21.4/dist/bootstrap-table.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.21.4/dist/extensions/filter-control/bootstrap-table-filter-control.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.21.4/dist/locale/bootstrap-table-ru-RU.min.js"></script>
+
+    <!-- DatePicker -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/locales/bootstrap-datepicker.ru.min.js"></script>
+
+    <!-- Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/ru.js"></script>
+</head>
+<body>
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'index' %}">Главная</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{% url 'zachislenie' %}">Зачисление</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'konkursnye_gruppy' %}">Конкурсные группы</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="data/Dokument">Редактирование всех таблиц</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Список приказов -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Приказы о зачислении</h5>
+                <div>
+                    <button class="btn btn-light mr-2" onclick="generatePrikazy()">
+                        <i class="fas fa-cog"></i> Сформировать приказы
+                    </button>
+                    <button class="btn btn-light" data-toggle="modal" data-target="#newPrikazModal">
+                        <i class="fas fa-plus"></i> Создать приказ
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <table id="prikazy_table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Номер приказа</th>
+                            <th>Дата</th>
+                            <th>Статус</th>
+                            <th>Количество студентов</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for prikaz in prikazy %}
+                        <tr>
+                            <td>{{ prikaz.nomer }}</td>
+                            <td>{{ prikaz.data }}</td>
+                            <td>
+                                <span class="badge badge-warning">{{ prikaz.status }}</span>
+                            </td>
+                            <td>{{ prikaz.kolichestvo_studentov }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'prikaz_detail' pk=prikaz.pk_prikaz %}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye"></i> Просмотр
+                                    </a>
+                                    {% if not prikaz.utverzhden %}
+                                        <button type="button" class="btn btn-warning btn-sm ml-1" data-prikaz-id="{{ prikaz.pk_prikaz }}" onclick="editPrikaz('{{ prikaz.pk_prikaz }}')">
+                                            <i class="fas fa-edit"></i> Редактировать
+                                        </button>
+                                        <button type="button" class="btn btn-success btn-sm ml-1" data-prikaz-id="{{ prikaz.pk_prikaz }}" onclick="utverditPrikaz('{{ prikaz.pk_prikaz }}')">
+                                            <i class="fas fa-check"></i> Утвердить
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm ml-1" data-prikaz-id="{{ prikaz.pk_prikaz }}" onclick="deletePrikaz('{{ prikaz.pk_prikaz }}')">
+                                            <i class="fas fa-trash"></i> Удалить
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания приказа -->
+    <div class="modal fade" id="newPrikazModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Создание приказа о зачислении</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="newPrikazForm">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="nomer">Номер приказа:</label>
+                            <input type="text" class="form-control" id="nomer" name="nomer" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="data">Дата приказа:</label>
+                            <input type="date" class="form-control" id="data" name="data" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="chei">Чей приказ:</label>
+                            <input type="text" class="form-control" id="chei" name="chei" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="pk_forma_obucheniya">Форма обучения:</label>
+                            <select class="form-control" id="pk_forma_obucheniya" name="pk_forma_obucheniya" required>
+                                <option value="">Выберите форму обучения</option>
+                                {% for forma in forma.pk_forma_obucheniya.field.choices %}
+                                <option value="{{ forma.0 }}">{{ forma.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="pk_kategoriya_obucheniya">Категория обучения:</label>
+                            <select class="form-control" id="pk_kategoriya_obucheniya" name="pk_kategoriya_obucheniya" required>
+                                <option value="">Выберите категорию обучения</option>
+                                {% for kategoriya in forma.pk_kategoriya_obucheniya.field.choices %}
+                                <option value="{{ kategoriya.0 }}">{{ kategoriya.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="pk_konkursnaya_gruppa">Конкурсная группа:</label>
+                            <select class="form-control" id="pk_konkursnaya_gruppa" name="pk_konkursnaya_gruppa" required>
+                                <option value="">Выберите конкурсную группу</option>
+                                {% for gruppa in konkursnye_gruppy %}
+                                <option value="{{ gruppa.pk }}">{{ gruppa.naim }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="createPrikaz()">Создать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования приказа -->
+    <div class="modal fade" id="editPrikazModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Редактирование приказа о зачислении</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="editPrikazForm">
+                        {% csrf_token %}
+                        <input type="hidden" id="edit_pk_prikaz" name="pk_prikaz">
+                        <div class="form-group">
+                            <label for="edit_nomer">Номер приказа:</label>
+                            <input type="text" class="form-control" id="edit_nomer" name="nomer" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_data">Дата приказа:</label>
+                            <input type="date" class="form-control" id="edit_data" name="data" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_chei">Чей приказ:</label>
+                            <input type="text" class="form-control" id="edit_chei" name="chei" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_pk_forma_obucheniya">Форма обучения:</label>
+                            <select class="form-control" id="edit_pk_forma_obucheniya" name="pk_forma_obucheniya" required>
+                                <option value="">Выберите форму обучения</option>
+                                {% for forma in forma.pk_forma_obucheniya.field.choices %}
+                                <option value="{{ forma.0 }}">{{ forma.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_pk_kategoriya_obucheniya">Категория обучения:</label>
+                            <select class="form-control" id="edit_pk_kategoriya_obucheniya" name="pk_kategoriya_obucheniya" required>
+                                <option value="">Выберите категорию обучения</option>
+                                {% for kategoriya in forma.pk_kategoriya_obucheniya.field.choices %}
+                                <option value="{{ kategoriya.0 }}">{{ kategoriya.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_pk_konkursnaya_gruppa">Конкурсная группа:</label>
+                            <select class="form-control" id="edit_pk_konkursnaya_gruppa" name="pk_konkursnaya_gruppa" required>
+                                <option value="">Выберите конкурсную группу</option>
+                                {% for gruppa in konkursnye_gruppy %}
+                                <option value="{{ gruppa.pk }}">{{ gruppa.naim }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="savePrikazEdit()">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Форматтер для колонки действий
+    function actionsFormatter(value, row) {
+        let buttons = `
+            <a href="/zachislenie/prikaz/${value}" class="btn btn-info btn-sm">
+                <i class="fas fa-eye"></i> Просмотр
+            </a>
+        `;
+        
+        if (!row.utverzhden) {
+            buttons += `
+                <button class="btn btn-warning btn-sm ml-1" onclick="editPrikaz(${value})">
+                    <i class="fas fa-edit"></i> Редактировать
+                </button>
+                <button class="btn btn-success btn-sm ml-1" onclick="utverditPrikaz(${value})">
+                    <i class="fas fa-check"></i> Утвердить
+                </button>
+                <button class="btn btn-danger btn-sm ml-1" onclick="deletePrikaz(${value})">
+                    <i class="fas fa-trash"></i> Удалить
+                </button>
+            `;
+        }
+        
+        return buttons;
+    }
+
+    // Создание нового приказа
+    function createPrikaz() {
+        const formData = new FormData(document.getElementById('newPrikazForm'));
+        
+        fetch('/zachislenie/create/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                $('#newPrikazModal').modal('hide');
+                location.reload();
+            } else {
+                alert('Ошибка: ' + data.message);
+            }
+        });
+    }
+
+    // Утверждение приказа
+    function utverditPrikaz(prikazId) {
+        if (confirm('Вы уверены, что хотите утвердить приказ?')) {
+            fetch(`/zachislenie/utverdit-prikaz/${prikazId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Перезагружаем страницу после успешного утверждения
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при утверждении приказа');
+            });
+        }
+    }
+
+    function editPrikaz(prikazId) {
+        // Загрузка данных приказа
+        $.ajax({
+            url: `/zachislenie/get-prikaz/${prikazId}/`,
+            type: 'GET',
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Заполняем форму данными
+                    $('#edit_pk_prikaz').val(response.prikaz.pk_prikaz);
+                    $('#edit_nomer').val(response.prikaz.nomer);
+                    $('#edit_data').val(response.prikaz.data);
+                    $('#edit_chei').val(response.prikaz.chei);
+                    $('#edit_pk_forma_obucheniya').val(response.prikaz.pk_forma_obucheniya);
+                    $('#edit_pk_kategoriya_obucheniya').val(response.prikaz.pk_kategoriya_obucheniya);
+                    $('#edit_pk_konkursnaya_gruppa').val(response.prikaz.pk_konkursnaya_gruppa);
+                    
+                    // Открываем модальное окно
+                    $('#editPrikazModal').modal('show');
+                } else {
+                    alert('Ошибка при загрузке данных приказа');
+                }
+            },
+            error: function() {
+                alert('Ошибка при загрузке данных приказа');
+            }
+        });
+    }
+
+    function savePrikazEdit() {
+        const prikazId = $('#edit_pk_prikaz').val();
+        $.ajax({
+            url: `/zachislenie/edit-prikaz/${prikazId}/`,
+            type: 'POST',
+            data: $('#editPrikazForm').serialize(),
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#editPrikazModal').modal('hide');
+                    // Обновляем таблицу
+                    $('#prikazy_table').bootstrapTable('refresh');
+                } else {
+                    alert('Ошибка при сохранении приказа');
+                }
+            },
+            error: function() {
+                alert('Ошибка при сохранении приказа');
+            }
+        });
+    }
+
+    function generatePrikazy() {
+        if (confirm('Вы уверены, что хотите сформировать приказы? Это действие может занять некоторое время.')) {
+            fetch('/zachislenie/generate-prikazy/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload(); // Перезагружаем страницу для отображения новых приказов
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при формировании приказов');
+            });
+        }
+    }
+
+    // Удаление приказа
+    function deletePrikaz(prikazId) {
+        if (confirm('Вы уверены, что хотите удалить приказ?')) {
+            fetch(`/zachislenie/delete-prikaz/${prikazId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Перезагружаем страницу после успешного удаления
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при удалении приказа');
+            });
+        }
+    }
+
+    // Сохраняем значения полей перед обработкой даты
+    let savedFields = {
+        forma: null,
+        kategoriya: null,
+        gruppa: null
+    };
+
+    // Функция сохранения значений полей
+    function saveFieldValues() {
+        savedFields.forma = $('#pk_forma_obucheniya').val();
+        savedFields.kategoriya = $('#pk_kategoriya_obucheniya').val();
+        savedFields.gruppa = $('#pk_konkursnaya_gruppa').val();
+    }
+
+    // Функция восстановления значений полей
+    function restoreFieldValues() {
+        if (savedFields.forma) $('#pk_forma_obucheniya').val(savedFields.forma);
+        if (savedFields.kategoriya) $('#pk_kategoriya_obucheniya').val(savedFields.kategoriya);
+        if (savedFields.gruppa) $('#pk_konkursnaya_gruppa').val(savedFields.gruppa);
+    }
+
+    // Обработчик изменения даты
+    $('input[name="data"]').on('change', function() {
+        saveFieldValues();
+        // Ваш существующий код обработки даты
+        // ...
+        restoreFieldValues();
+    });
+
+    // То же самое для формы редактирования
+    $('input[name="edit_data"]').on('change', function() {
+        saveFieldValues();
+        // Ваш существующий код обработки даты
+        // ...
+        restoreFieldValues();
+    });
+
+    $(document).ready(function() {
+        $('#prikazy_table').bootstrapTable({
+            locale: 'ru-RU',
+            search: true,
+            showColumns: true,
+            pagination: true,
+            pageSize: 10,
+            pageList: [10, 25, 50, 100]
+        });
+
+        // Простая инициализация datepicker без лишних обработчиков
+        $('#data').datepicker({
+            format: 'yyyy-mm-dd',
+            autoclose: true,
+            language: 'ru',
+            todayHighlight: true,
+            clearBtn: false // Отключаем кнопку очистки
+        }).on('changeDate', function(e) {
+            e.preventDefault(); // Предотвращаем действие по умолчанию
+            $(this).datepicker('hide'); // Скрываем календарь после выбора даты
+        });
+
+        // То же самое для формы редактирования
+        $('#edit_data').datepicker({
+            format: 'yyyy-mm-dd',
+            autoclose: true,
+            language: 'ru',
+            todayHighlight: true,
+            clearBtn: false
+        }).on('changeDate', function(e) {
+            e.preventDefault();
+            $(this).datepicker('hide');
+        });
+
+        // Инициализация Select2 для конкурсной группы
+        $('#pk_konkursnaya_gruppa').select2({
+            placeholder: 'Выберите конкурсную группу',
+            width: '100%',
+            language: 'ru',
+            allowClear: true
+        });
+
+        // Обработчик изменения конкурсной группы
+        $('#pk_konkursnaya_gruppa').on('change', function() {
+            const groupId = $(this).val();
+            console.log('Selected group ID:', groupId); // Отладочный вывод
+            
+            if (groupId) {
+                $.ajax({
+                    url: '/zachislenie/get-group-details/',
+                    data: { group_id: groupId },
+                    success: function(response) {
+                        console.log('Response:', response); // Отладочный вывод
+                        
+                        if (response.success) {
+                            const forma = response.data.forma_obucheniya;
+                            const kategoriya = response.data.kategoriya_obucheniya;
+                            
+                            console.log('Setting values:', { forma, kategoriya }); // Отладочный вывод
+                            
+                            // Устанавливаем значения и блокируем поля
+                            if (forma) {
+                                $('#pk_forma_obucheniya').val(forma).prop('disabled', true);
+                            }
+                            if (kategoriya) {
+                                $('#pk_kategoriya_obucheniya').val(kategoriya).prop('disabled', true);
+                            }
+                            
+                            // Добавляем проверку, что значения действительно установились
+                            console.log('Values after setting:', {
+                                forma: $('#pk_forma_obucheniya').val(),
+                                kategoriya: $('#pk_kategoriya_obucheniya').val()
+                            });
+                        } else {
+                            console.error('Error response:', response); // Отладочный вывод
+                            alert('Ошибка при получении данных группы: ' + response.error);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Ajax error:', {xhr, status, error}); // Отладочный вывод
+                        alert('Ошибка при получении данных группы');
+                    }
+                });
+            } else {
+                // Если группа не выбрана, очищаем и разблокируем поля
+                $('#pk_forma_obucheniya').val('').prop('disabled', false);
+                $('#pk_kategoriya_obucheniya').val('').prop('disabled', false);
+            }
+        });
+
+        // Обработчик открытия модального окна
+        $('#newPrikazModal').on('show.bs.modal', function() {
+            const form = $('#newPrikazForm')[0];
+            const currentDate = form.querySelector('#data').value;
+            // НЕ сбрасываем форму полностью
+            // Сохраняем текущие значения
+            const savedValues = {
+                forma: $('#pk_forma_obucheniya').val(),
+                kategoriya: $('#pk_kategoriya_obucheniya').val(),
+                gruppa: $('#pk_konkursnaya_gruppa').val()
+            };
+            
+            // Восстанавливаем значения
+            if (currentDate) {
+                form.querySelector('#data').value = currentDate;
+            }
+            if (savedValues.forma) $('#pk_forma_obucheniya').val(savedValues.forma);
+            if (savedValues.kategoriya) $('#pk_kategoriya_obucheniya').val(savedValues.kategoriya);
+            if (savedValues.gruppa) $('#pk_konkursnaya_gruppa').val(savedValues.gruppa).trigger('change.select2');
+        });
+
+        // Обработчик изменения конкурсной группы в форме редактирования
+        $('#edit_pk_konkursnaya_gruppa').on('change', function() {
+            const gruppaId = $(this).val();
+            console.log('Selected group ID:', gruppaId); // Отладочный вывод
+            
+            if (gruppaId) {
+                $.ajax({
+                    url: `/zachislenie/get-group-details/${gruppaId}/`,
+                    type: 'GET',
+                    success: function(response) {
+                        console.log('Response:', response); // Отладочный вывод
+                        
+                        if (response.status === 'success') {
+                            console.log('Setting values:', {
+                                forma: response.forma_obucheniya,
+                                kategoriya: response.kategoriya_obucheniya
+                            }); // Отладочный вывод
+                            
+                            $('#edit_pk_forma_obucheniya').val(response.forma_obucheniya);
+                            $('#edit_pk_kategoriya_obucheniya').val(response.kategoriya_obucheniya);
+                            
+                            $('#edit_pk_forma_obucheniya').prop('disabled', true);
+                            $('#edit_pk_kategoriya_obucheniya').prop('disabled', true);
+                        } else {
+                            console.error('Error response:', response); // Отладочный вывод
+                            alert('Ошибка при получении данных группы: ' + response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Ajax error:', {xhr, status, error}); // Отладочный вывод
+                        alert('Ошибка при получении данных группы');
+                    }
+                });
+            } else {
+                $('#edit_pk_forma_obucheniya').val('').prop('disabled', false);
+                $('#edit_pk_kategoriya_obucheniya').val('').prop('disabled', false);
+            }
+        });
+
+        // Добавляем обработчик открытия модального окна
+        $('#editPrikazModal').on('shown.bs.modal', function() {
+            const gruppaId = $('#edit_pk_konkursnaya_gruppa').val();
+            if (gruppaId) {
+                // Если группа выбрана, блокируем поля
+                $('#edit_pk_forma_obucheniya').prop('disabled', true);
+                $('#edit_pk_kategoriya_obucheniya').prop('disabled', true);
+            }
+        });
+
+        // Добавляем обработчик закрытия модального окна
+        $('#editPrikazModal').on('hidden.bs.modal', function() {
+            // Разблокируем поля при закрытии
+            $('#edit_pk_forma_obucheniya').prop('disabled', false);
+            $('#edit_pk_kategoriya_obucheniya').prop('disabled', false);
+            // Очищаем форму
+            $('#editPrikazForm')[0].reset();
+        });
+    });
+    </script>
+</body>
+</html> 

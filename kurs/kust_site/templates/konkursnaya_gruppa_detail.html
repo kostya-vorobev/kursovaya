@@ -1,0 +1,146 @@
+{% load custom_tags %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ gruppa.nazvanie }} - Список заявлений</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://unpkg.com/bootstrap-table@1.22.1/dist/bootstrap-table.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/bootstrap-table@1.22.1/dist/extensions/filter-control/bootstrap-table-filter-control.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <!-- Core JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <!-- Bootstrap Table -->
+    <script src="https://unpkg.com/bootstrap-table@1.22.1/dist/bootstrap-table.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.22.1/dist/extensions/filter-control/bootstrap-table-filter-control.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.22.1/dist/locale/bootstrap-table-ru-RU.min.js"></script>
+</head>
+<body>
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'index' %}">Главная</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Зачисление</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'konkursnye_gruppy' %}">Конкурсные группы</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="data/Dokument">Редактирование всех таблиц</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Информация о конкурсной группе -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">{{ gruppa.naim }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <p><strong>Форма обучения:</strong> {{ gruppa.pk_kcp.pk_forma_obucheniya.naim }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Категория обучения:</strong> {{ gruppa.pk_kategoriya_obucheniya.naim }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>План набора:</strong> {{ gruppa.kolichestvo_mest }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Специальность:</strong> {{ gruppa.pk_kcp.pk_spetsialnost.naim }}</p>
+                    </div>
+                </div>
+                {% if gruppa.daty_podachi %}
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <p><strong>Даты подачи:</strong> {{ gruppa.daty_podachi }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Таблица заявлений -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Список заявлений</h5>
+            </div>
+            <div class="card-body">
+                <table id="zayavleniya_table"
+                       data-toggle="table"
+                       data-search="true"
+                       data-show-columns="true"
+                       data-show-refresh="true"
+                       data-filter-control="true"
+                       data-pagination="true"
+                       data-page-list="[10, 25, 50, 100, all]"
+                       data-search-on-enter-key="false"
+                       data-filter-control-visible="true"
+                       data-side-pagination="client">
+                    <thead>
+                        <tr>
+                            <th data-field="mesto" 
+                                data-sortable="true">Место</th>
+                            <th data-field="fio" 
+                                data-filter-control="input"
+                                data-sortable="true">ФИО</th>
+                            <th data-field="prioritet" 
+                                data-filter-control="input"
+                                data-sortable="true">Приоритет</th>
+                            <th data-field="summa_ballov" 
+                                data-sortable="true">Сумма баллов</th>
+                            <th data-field="data_podachi" 
+                                data-sortable="true">Дата подачи</th>
+                            <th data-field="status" 
+                                data-filter-control="select"
+                                data-sortable="true">Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for zayavlenie in zayavleniya %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ zayavlenie.pk_lichnoe_delo.pk_fizicheskoe_litso.familiya }} 
+                                {{ zayavlenie.pk_lichnoe_delo.pk_fizicheskoe_litso.imya }} 
+                                {{ zayavlenie.pk_lichnoe_delo.pk_fizicheskoe_litso.otchestvo }}</td>
+                            <td>{{ zayavlenie.prioritet }}</td>
+                            <td>{{ zayavlenie.summa_ballov }}</td>
+                            <td>{{ zayavlenie.data_podachi|date:"d.m.Y" }}</td>
+                            <td>{{ zayavlenie.status }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    $(document).ready(function() {
+        $('#zayavleniya_table').bootstrapTable({
+            locale: 'ru-RU',
+            sortName: 'summa_ballov',
+            sortOrder: 'desc',
+            icons: {
+                refresh: 'fas fa-sync',
+                toggle: 'fas fa-list',
+                columns: 'fas fa-columns'
+            }
+        });
+    });
+    </script>
+</body>
+</html> 

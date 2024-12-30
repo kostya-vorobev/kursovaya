@@ -1,0 +1,389 @@
+{% load custom_tags %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Конкурсные группы</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://unpkg.com/bootstrap-table@1.22.1/dist/bootstrap-table.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/bootstrap-table@1.22.1/dist/extensions/filter-control/bootstrap-table-filter-control.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <!-- Core JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <!-- Bootstrap Table -->
+    <script src="https://unpkg.com/bootstrap-table@1.22.1/dist/bootstrap-table.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.22.1/dist/extensions/filter-control/bootstrap-table-filter-control.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.22.1/dist/locale/bootstrap-table-ru-RU.min.js"></script>
+    
+    <!-- DateRangePicker CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    
+    <!-- DateRangePicker JS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+</head>
+<body>
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'index' %}">Главная</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'zachislenie' %}">Зачисление</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{% url 'konkursnye_gruppy' %}">Конкурсные группы</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../data/Dokument">Редактирование всех таблиц</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Таблица конкурсных групп -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Конкурсные группы</h5>
+                    <button class="btn btn-light" onclick="refreshTable()">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <button class="btn btn-success" data-toggle="modal" data-target="#createGroupModal">
+                        <i class="fas fa-plus"></i> Добавить конкурсную группу
+                    </button>
+                </div>
+
+                <table id="konkursnye_gruppy_table"
+                       data-toggle="table"
+                       data-search="true"
+                       data-show-columns="true"
+                       data-show-refresh="true"
+                       data-filter-control="true"
+                       data-pagination="true"
+                       data-page-list="[10, 25, 50, 100, all]"
+                       data-search-on-enter-key="false"
+                       data-filter-control-visible="true"
+                       data-side-pagination="client">
+                    <thead>
+                        <tr>
+                            <th data-field="nazvanie" 
+                                data-filter-control="input"
+                                data-sortable="true">Название</th>
+                            <th data-field="forma_obucheniya" 
+                                data-filter-control="select"
+                                data-sortable="true">Форма обучения</th>
+                            <th data-field="uroven_podgotovki" 
+                                data-filter-control="select"
+                                data-sortable="true">Уровень подготовки</th>
+                            <th data-field="plan_nabora" 
+                                data-filter-control="input"
+                                data-sortable="true">План набора</th>
+                            <th data-field="actions" 
+                                data-sortable="false">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for gruppa in konkursnye_gruppy %}
+                        <tr>
+                            <td>{{ gruppa.naim }}</td>
+                            <td>{{ gruppa.pk_kcp.pk_forma_obucheniya }}</td>
+                            <td>{{ gruppa.pk_kategoriya_obucheniya }}</td>
+                            <td>{{ gruppa.kolichestvo_mest }}</td>
+                            <td>
+                                <a href="{% url 'konkursnaya_gruppa_detail' pk=gruppa.pk %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye me-1"></i>Просмотр списка
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Модальное окно для создания группы -->
+                <div class="modal fade" id="createGroupModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Создание конкурсной группы</h5>
+                                <button type="button" class="close" data-dismiss="modal">
+                                    <span>&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="createGroupForm">
+                                    {% csrf_token %}
+                                    <div class="form-group">
+                                        <label for="nazvanie">Название группы*</label>
+                                        <input type="text" class="form-control" id="nazvanie" name="nazvanie" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="forma_obucheniya">Форма обучения*</label>
+                                        <select class="form-control" id="forma_obucheniya" name="forma_obucheniya" required>
+                                            <option value="">Выберите форму обучения</option>
+                                            {% for forma in formy_obucheniya %}
+                                                <option value="{{ forma.pk_forma_obucheniya }}">{{ forma.naim }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="uroven_podgotovki">Категория обучения*</label>
+                                        <select class="form-control" id="uroven_podgotovki" name="uroven_podgotovki" required>
+                                            <option value="">Выберите категорию обучения</option>
+                                            {% for kategoriya in kategorii_obucheniya %}
+                                                <option value="{{ kategoriya.pk_kategoriya_obucheniya }}">{{ kategoriya.naim }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="plan_nabora">План набора*</label>
+                                        <input type="number" class="form-control" id="plan_nabora" name="plan_nabora" min="1" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="daty_podachi">Даты подачи</label>
+                                        <input type="text" class="form-control" id="daty_podachi" name="daty_podachi" readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pk_kcp">КЦП*</label>
+                                        <select class="form-control" id="pk_kcp" name="pk_kcp" required>
+                                            <option value="">Выберите КЦП</option>
+                                            {% for kcp in kcps %}
+                                                <option value="{{ kcp.pk_kcp }}" 
+                                                        data-summa="{{ kcp.summa }}"
+                                                        data-facultet="{{ kcp.pk_facultet.naim|default:'' }}"
+                                                        data-forma="{{ kcp.pk_forma_obucheniya.naim|default:'' }}"
+                                                        data-spec="{{ kcp.pk_spetsialnost.naim|default:'' }}">
+                                                    {{ kcp.pk_spetsialnost.naim|default:'' }} - 
+                                                    {{ kcp.pk_forma_obucheniya.naim|default:'' }} - 
+                                                    {{ kcp.summa }} мест
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div id="kcpInfo" class="alert alert-info" style="display: none;">
+                                        <h6>Информация о КЦП:</h6>
+                                        <p><strong>Факультет:</strong> <span id="kcpFacultet"></span></p>
+                                        <p><strong>Специальность:</strong> <span id="kcpSpec"></span></p>
+                                        <p><strong>Форма обучения:</strong> <span id="kcpForma"></span></p>
+                                        <p><strong>Количество мест:</strong> <span id="kcpSumma"></span></p>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                                <button type="button" class="btn btn-primary" onclick="createGroup()">Создать</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    /* Стили для таблицы */
+    .bootstrap-table .fixed-table-toolbar .filter-control input,
+    .bootstrap-table .fixed-table-toolbar .filter-control select {
+        width: 100%;
+        padding: 6px 12px;
+        font-size: 14px;
+        line-height: 1.42857143;
+        color: #555;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .bootstrap-table .fixed-table-toolbar .filter-control input:focus,
+    .bootstrap-table .fixed-table-toolbar .filter-control select:focus {
+        border-color: #66afe9;
+        outline: 0;
+        box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+    }
+
+    .card {
+        border: none;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+        background-color: #17a2b8 !important;
+        border-bottom: 0;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+    }
+
+    .btn-info:hover {
+        background-color: #138496;
+        border-color: #117a8b;
+    }
+
+    .daterangepicker {
+        z-index: 1100; /* Чтобы календарь был поверх модального окна */
+    }
+
+    .daterangepicker td.active, 
+    .daterangepicker td.active:hover {
+        background-color: #17a2b8;
+    }
+
+    .daterangepicker .ranges li.active {
+        background-color: #17a2b8;
+    }
+    </style>
+
+    <script>
+    $(document).ready(function() {
+        // Для отладки - проверяем, что данные передаются
+        
+        $('#konkursnye_gruppy_table').bootstrapTable({
+            locale: 'ru-RU',
+            icons: {
+                refresh: 'fas fa-sync',
+                toggle: 'fas fa-list',
+                columns: 'fas fa-columns'
+            }
+        });
+
+        // Инициализация DateRangePicker
+        $('#daty_podachi').daterangepicker({
+            locale: {
+                format: 'DD.MM.YYYY',
+                separator: ' - ',
+                applyLabel: 'Применить',
+                cancelLabel: 'Отмена',
+                fromLabel: 'От',
+                toLabel: 'До',
+                customRangeLabel: 'Произвольный',
+                weekLabel: 'Н',
+                daysOfWeek: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
+                monthNames: [
+                    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+                ],
+                firstDay: 1
+            },
+            autoUpdateInput: false,
+            opens: 'left',
+            showDropdowns: true,
+            minYear: 2024,
+            maxYear: parseInt(moment().format('YYYY'), 10)
+        });
+
+        // Обработчики событий для DateRangePicker
+        $('#daty_podachi').on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(picker.startDate.format('DD.MM.YYYY') + ' - ' + picker.endDate.format('DD.MM.YYYY'));
+        });
+
+        $('#daty_podachi').on('cancel.daterangepicker', function(ev, picker) {
+            $(this).val('');
+        });
+
+        // Обработчик изменения КЦП
+        $('#pk_kcp').change(function() {
+            const selected = $(this).find('option:selected');
+            if (selected.val()) {
+                // Заполняем информационный блок
+                $('#kcpFacultet').text(selected.data('facultet'));
+                $('#kcpSpec').text(selected.data('spec'));
+                $('#kcpForma').text(selected.data('forma'));
+                $('#kcpSumma').text(selected.data('summa'));
+                $('#kcpInfo').show();
+                
+                // Автоматически заполняем количество мест
+                $('#plan_nabora').val(selected.data('summa'));
+                
+                // Автоматически выбираем форму обучения, если она есть
+                if (selected.data('forma')) {
+                    $('#forma_obucheniya option').each(function() {
+                        if ($(this).text() === selected.data('forma')) {
+                            $(this).prop('selected', true);
+                        }
+                    });
+                }
+            } else {
+                $('#kcpInfo').hide();
+                $('#plan_nabora').val('');
+            }
+        });
+
+        // Обработчик кнопки обновления
+        $('.btn-refresh').click(function(e) {
+            e.preventDefault();
+            refreshTable();
+        });
+    });
+
+    function refreshTable() {
+        $.ajax({
+            url: '{% url "refresh_konkursnye_gruppy" %}',
+            type: 'GET',
+            success: function(response) {
+                $('#konkursnye_gruppy_table').bootstrapTable('load', response.data);
+            },
+            error: function(xhr) {
+                alert('Ошибка при обновлении данных');
+            }
+        });
+    }
+
+    function createGroup() {
+        const form = $('#createGroupForm');
+        if (!form[0].checkValidity()) {
+            form[0].reportValidity();
+            return;
+        }
+
+        const formData = {
+            nazvanie: $('#nazvanie').val(),
+            forma_obucheniya: $('#forma_obucheniya').val(),
+            uroven_podgotovki: $('#uroven_podgotovki').val(),
+            plan_nabora: $('#plan_nabora').val(),
+            daty_podachi: $('#daty_podachi').val(),
+            pk_kcp: $('#pk_kcp').val(),
+            csrfmiddlewaretoken: form.find('[name=csrfmiddlewaretoken]').val()
+        };
+
+        $.ajax({
+            url: '{% url "create_konkursnaya_gruppa" %}',
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    $('#createGroupModal').modal('hide');
+                    form[0].reset();
+                    refreshTable();
+                    alert('Конкурсная группа успешно создана');
+                } else {
+                    alert('Ошибка: ' + response.message);
+                }
+            },
+            error: function(xhr) {
+                alert('Произошла ошибка при создании группы');
+            }
+        });
+    }
+
+    // Очистка формы при закрытии модального окна
+    $('#createGroupModal').on('hidden.bs.modal', function () {
+        $('#createGroupForm')[0].reset();
+    });
+    </script>
+</body>
+</html> 

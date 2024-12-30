@@ -1,0 +1,483 @@
+{% load custom_tags %}
+
+<div class="container">
+    <!-- Форма добавления/редактирования -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Добавление физического лица</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="fizicheskoe_litso_form">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.familiya.id_for_label }}" class="form-label">{{ form.familiya.label }} *</label>
+                        {{ form.familiya }}
+                        <div class="invalid-feedback">
+                            {{ form.familiya.errors|first|default:"Пожалуйста, введите фамилию (только русские буквы)" }}
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.imya.id_for_label }}" class="form-label">{{ form.imya.label }} *</label>
+                        {{ form.imya }}
+                        <div class="invalid-feedback">
+                            {{ form.imya.errors|first|default:"Пожалуйста, введите имя (только русские буквы)" }}
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.otchestvo.id_for_label }}" class="form-label">{{ form.otchestvo.label }}</label>
+                        {{ form.otchestvo }}
+                        <div class="invalid-feedback">
+                            {{ form.otchestvo.errors|first|default:"Отчество должно содержать только русские буквы" }}
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.data_rozhdeniya.id_for_label }}" class="form-label">{{ form.data_rozhdeniya.label }} *</label>
+                        {{ form.data_rozhdeniya }}
+                        <div class="invalid-feedback">
+                            {{ form.data_rozhdeniya.errors|first|default:"Пожалуйста, выберите дату рождения" }}
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.telefon.id_for_label }}" class="form-label">{{ form.telefon.label }} *</label>
+                        {{ form.telefon }}
+                        <div class="invalid-feedback">
+                            {{ form.telefon.errors|first|default:"Введите телефон в формате +7(XXX)XXX-XX-XX" }}
+                        </div>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <button type="submit" class="btn btn-info text-white" name="save_fizicheskoe">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Таблица физических лиц -->
+    <div class="container mt-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Список физических лиц</h5>
+            </div>
+            <div class="card-body">
+                <table id="fizLitsoTable"
+                       data-toggle="table"
+                       data-search="true"
+                       data-show-columns="true"
+                       data-show-refresh="true"
+                       data-filter-control="true"
+                       data-pagination="true"
+                       data-page-list="[10, 25, 50, 100, all]"
+                       data-search-on-enter-key="false"
+                       data-filter-control-visible="true"
+                       data-side-pagination="client">
+                    <thead>
+                        <tr>
+                            <th data-field="familiya" 
+                                data-filter-control="input"
+                                data-sortable="true">Фамилия</th>
+                            <th data-field="imya" 
+                                data-filter-control="input"
+                                data-sortable="true">Имя</th>
+                            <th data-field="otchestvo" 
+                                data-filter-control="input"
+                                data-sortable="true">Отчество</th>
+                            <th data-field="data_rozhdeniya" 
+                                data-filter-control="datepicker"
+                                data-sortable="true">Дата рождения</th>
+                            <th data-field="telefon" 
+                                data-filter-control="input"
+                                data-sortable="true">Телефон</th>
+                            <th data-field="actions" 
+                                data-sortable="false">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in fizicheskoe_data %}
+                        <tr>
+                            <td>{{ item.familiya }}</td>
+                            <td>{{ item.imya }}</td>
+                            <td>{{ item.otchestvo|default:"-" }}</td>
+                            <td>{{ item.data_rozhdeniya|date:"d.m.Y" }}</td>
+                            <td>{{ item.telefon }}</td>
+                            <td>
+                                <button class="btn btn-info btn-sm" onclick="openRelatedTabs('{{ item.pk_fizicheskoe_litso }}')">
+                                    <i class="fas fa-check me-1"></i>Выбрать
+                                </button>
+                                <button class="btn btn-warning btn-sm edit-fizlitso" data-id="{{ item.pk_fizicheskoe_litso }}">
+                                    <i class="fas fa-edit me-1"></i>Редактировать
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        // Создаем скрытое поле для хранения даты в формате yyyy-mm-dd
+        const dateInput = $('#id_data_rozhdeniya');
+        dateInput.after('<input type="hidden" name="data_rozhdeniya_hidden" id="data_rozhdeniya_hidden">');
+        
+        // Меняем тип поля на text для работы с datepicker
+        dateInput.attr('type', 'text');
+        
+        // Инициализация datepicker
+        dateInput.datepicker({
+            format: 'dd.mm.yyyy',
+            language: 'ru',
+            autoclose: true,
+            todayHighlight: true,
+            orientation: 'bottom'
+        }).on('changeDate', function(e) {
+            if (e.date) {
+                // Форматируем дату для скрытого поля
+                const year = e.date.getFullYear();
+                const month = String(e.date.getMonth() + 1).padStart(2, '0');
+                const day = String(e.date.getDate()).padStart(2, '0');
+                
+                // Устанавливаем значение в скрытое поле
+                $('#data_rozhdeniya_hidden').val(`${year}-${month}-${day}`);
+                
+                // Форматируем дату для отображения
+                $(this).val(`${day}.${month}.${year}`);
+            }
+        });
+
+        // Обработчик отправки формы
+        $('#fizicheskoe_litso_form').on('submit', function(e) {
+            e.preventDefault();
+            
+            const $form = $(this);  // Сохраняем ссылку на форму
+            const formData = new FormData(this);
+            const fizlitsoId = formData.get('fizlitso_id');
+            const url = fizlitsoId ? '/update_fizlitso/' : '/save_fizicheskoe_litso/';
+            
+            // Используем значение из скрытого поля даты
+            const hiddenDate = $('#data_rozhdeniya_hidden').val();
+            if (hiddenDate) {
+                formData.set('data_rozhdeniya', hiddenDate);
+            }
+            
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        $('#alertContainer').html(
+                            '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                            (fizlitsoId ? 'Данные успешно обновлены' : 'Физическое лицо успешно сохранено') +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                            '</div>'
+                        );
+                        
+                        // Очищаем форму
+                        $form[0].reset();
+                        $form.find('input[name="fizlitso_id"]').remove();
+                        $form.find('button[type="submit"]').html('<i class="fas fa-save me-2"></i>Сохранить');
+                        $('.btn-cancel-edit').remove();
+                        $('#data_rozhdeniya_hidden').val('');
+                        
+                        // Обновляем таблицу
+                        refreshFizLitsoTable();
+                    } else {
+                        $('#alertContainer').html(
+                            '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                            (response.error || 'Произошла ошибка при сохранении') +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                            '</div>'
+                        );
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#alertContainer').html(
+                        '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                        'Произошла ошибка при отправке формы: ' + error +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                        '</div>'
+                    );
+                }
+            });
+            
+            return false;
+        });
+
+        // Инициализация таблицы
+        const $table = $('#fizLitsoTable');
+        
+        $table.bootstrapTable({
+            locale: 'ru-RU',
+            icons: {
+                refresh: 'fas fa-sync',
+                toggle: 'fas fa-list',
+                columns: 'fas fa-columns'
+            }
+        });
+
+        // Функция обновления таблицы
+        function refreshFizLitsoTable() {
+            $.ajax({
+                url: '/refresh_fizlitso_table/',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        $table.bootstrapTable('load', response.data);
+                    } else {
+                        console.error('Ошибка при обновлении таблицы:', response.error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Ошибка при обновлении таблицы:', error);
+                }
+            });
+        }
+
+        // Замена стандартной кнопки обновления
+        function replaceRefreshButton() {
+            const $toolbar = $table.closest('.bootstrap-table').find('.fixed-table-toolbar');
+            const $oldButton = $toolbar.find('button[name="refresh"]');
+            
+            if ($oldButton.length) {
+                const $newButton = $(`
+                    <button type="button" 
+                            class="btn btn-secondary custom-refresh-fizlitso" 
+                            name="refreshFizLitsoTable" 
+                            title="Обновить">
+                        <i class="fas fa-sync"></i>
+                    </button>
+                `);
+
+                $oldButton.replaceWith($newButton);
+
+                $newButton.on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    refreshFizLitsoTable();
+                });
+            }
+        }
+
+        // Вызываем замену кнопки после инициализации таблицы
+        setTimeout(replaceRefreshButton, 500);
+
+        // Обновляем кнопку при различных событиях
+        $(document).on('post-init.bs.table', function() {
+            setTimeout(replaceRefreshButton, 500);
+        });
+
+        $(document).on('post-body.bs.table', function() {
+            setTimeout(replaceRefreshButton, 500);
+        });
+
+        // Функция валидации русских букв
+        function validateRussianName(value) {
+            return /^[А-Яа-я][-А-Яа-я\s]*$/.test(value);
+        }
+
+        // Валидация при вводе для полей с русскими буквами
+        $('#id_familiya, #id_imya, #id_otchestvo').on('input', function() {
+            const $input = $(this);
+            const value = $input.val();
+            
+            if (value && !validateRussianName(value)) {
+                $input.addClass('is-invalid');
+            } else {
+                $input.removeClass('is-invalid');
+            }
+        });
+
+        // Инициализация datepicker
+        $('.datepicker').datepicker({
+            format: 'dd.mm.yyyy',
+            language: 'ru',
+            autoclose: true,
+            todayHighlight: true,
+            orientation: 'bottom'
+        });
+
+        // Обработка изменения даты
+        $('.datepicker').on('changeDate', function(e) {
+            const input = $(this);
+            const date = e.date;
+            
+            if (date) {
+                // Форматируем дату для отображения
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const displayDate = `${day}.${month}.${year}`;
+                
+                // Форматируем дату для отправки на сервер
+                const isoDate = `${year}-${month}-${day}`;
+                
+                // Создаем скрытое поле, если его нет
+                if (!input.next('#hidden_data_rozhdeniya').length) {
+                    input.after(`<input type="hidden" id="hidden_data_rozhdeniya" name="data_rozhdeniya" value="${isoDate}">`);
+                } else {
+                    input.next('#hidden_data_rozhdeniya').val(isoDate);
+                }
+                
+                // Обновляем отображаемую дату
+                input.val(displayDate);
+            }
+        });
+
+        // Форматирование телефонного номера
+        $('#id_telefon').on('input', function(e) {
+            let value = $(this).val().replace(/\D/g, ''); // Оставляем только цифры
+            
+            if (value.length > 0 && value[0] !== '7') {
+                if (value[0] === '8') {
+                    value = '7' + value.slice(1);
+                } else {
+                    value = '7' + value;
+                }
+            }
+            
+            let formattedValue = '';
+            if (value.length > 0) {
+                formattedValue = '+';
+                if (value.length > 0) {
+                    formattedValue += value.substring(0, 1);
+                }
+                if (value.length > 1) {
+                    formattedValue += '(' + value.substring(1, 4);
+                }
+                if (value.length > 4) {
+                    formattedValue += ')' + value.substring(4, 7);
+                }
+                if (value.length > 7) {
+                    formattedValue += '-' + value.substring(7, 9);
+                }
+                if (value.length > 9) {
+                    formattedValue += '-' + value.substring(9, 11);
+                }
+            }
+            
+            $(this).val(formattedValue);
+        });
+
+        // Обработка вставки номера
+        $('#id_telefon').on('paste', function(e) {
+            e.preventDefault();
+            let pastedText = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
+            let value = pastedText.replace(/\D/g, '');
+            
+            if (value.length > 0 && value[0] !== '7') {
+                if (value[0] === '8') {
+                    value = '7' + value.slice(1);
+                } else {
+                    value = '7' + value;
+                }
+            }
+            
+            let formattedValue = '';
+            if (value.length > 0) {
+                formattedValue = '+';
+                if (value.length > 0) {
+                    formattedValue += value.substring(0, 1);
+                }
+                if (value.length > 1) {
+                    formattedValue += '(' + value.substring(1, 4);
+                }
+                if (value.length > 4) {
+                    formattedValue += ')' + value.substring(4, 7);
+                }
+                if (value.length > 7) {
+                    formattedValue += '-' + value.substring(7, 9);
+                }
+                if (value.length > 9) {
+                    formattedValue += '-' + value.substring(9, 11);
+                }
+            }
+            
+            $(this).val(formattedValue);
+        });
+
+        // Запрет ввода букв и специальных символов
+        $('#id_telefon').on('keypress', function(e) {
+            if (!/\d/.test(String.fromCharCode(e.keyCode)) && e.keyCode !== 8 && e.keyCode !== 46) {
+                e.preventDefault();
+            }
+        });
+
+        // Обработчик редактирования физ. лица
+        $(document).on('click', '.edit-fizlitso', function() {
+            const fizlitsoId = $(this).data('id');
+            
+            $.ajax({
+                url: '/get_fizlitso_data/',
+                type: 'GET',
+                data: { fizlitso_id: fizlitsoId },
+                success: function(response) {
+                    if (response.success) {
+                        const data = response.data;
+                        const form = $('#fizicheskoe_litso_form');
+                        
+                        // Заполняем форму данными
+                        form.find('input[name="familiya"]').val(data.familiya);
+                        form.find('input[name="imya"]').val(data.imya);
+                        form.find('input[name="otchestvo"]').val(data.otchestvo);
+                        
+                        // Устанавливаем дату
+                        const dateInput = form.find('#id_data_rozhdeniya');
+                        dateInput.val(data.data_rozhdeniya_display);
+                        $('#data_rozhdeniya_hidden').val(data.data_rozhdeniya);
+                        
+                        // Устанавливаем телефон
+                        form.find('input[name="telefon"]').val(data.telefon);
+                        
+                        // Добавляем ID физ. лица в скрытое поле
+                        if (!form.find('input[name="fizlitso_id"]').length) {
+                            form.append('<input type="hidden" name="fizlitso_id">');
+                        }
+                        form.find('input[name="fizlitso_id"]').val(fizlitsoId);
+                        
+                        // Меняем текст кнопки сохранения
+                        form.find('button[type="submit"]').html('<i class="fas fa-save me-2"></i>Сохранить изменения');
+                        
+                        // Добавляем кнопку отмены редактирования
+                        if (!form.find('.btn-cancel-edit').length) {
+                            form.find('button[type="submit"]').after(
+                                '<button type="button" class="btn btn-secondary ms-2 btn-cancel-edit">' +
+                                '<i class="fas fa-times me-2"></i>Отменить</button>'
+                            );
+                        }
+                        
+                        // Прокручиваем страницу к форме
+                        $('html, body').animate({
+                            scrollTop: form.offset().top - 100
+                        }, 500);
+                    } else {
+                        $('#alertContainer').html(
+                            '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                            (response.error || 'Произошла ошибка при загрузке данных') +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                            '</div>'
+                        );
+                    }
+                }
+            });
+        });
+
+        // Обработчик отмены редактирования
+        $(document).on('click', '.btn-cancel-edit', function() {
+            const form = $('#fizicheskoe_litso_form');
+            form[0].reset();
+            form.find('input[name="fizlitso_id"]').remove();
+            form.find('button[type="submit"]').html('<i class="fas fa-save me-2"></i>Сохранить');
+            $('#data_rozhdeniya_hidden').val('');
+            $(this).remove();
+        });
+    });
+</script>

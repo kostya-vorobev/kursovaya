@@ -1,0 +1,402 @@
+{% load custom_tags %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Приказ №{{ prikaz.nomer }}</title>
+    
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/bootstrap-table@1.21.4/dist/bootstrap-table.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/bootstrap-table@1.21.4/dist/extensions/filter-control/bootstrap-table-filter-control.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+    
+    <!-- Bootstrap Table -->
+    <script src="https://unpkg.com/bootstrap-table@1.21.4/dist/bootstrap-table.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.21.4/dist/extensions/filter-control/bootstrap-table-filter-control.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.21.4/dist/locale/bootstrap-table-ru-RU.min.js"></script>
+</head>
+<body>
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'index' %}">Главная</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'zachislenie' %}">Зачисление</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'konkursnye_gruppy' %}">Конкурсные группы</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="data/Dokument">Редактирование всех таблиц</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Информация о приказе -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-info text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Приказ №{{ prikaz.nomer }} от {{ prikaz.data|date:"d.m.Y" }}</h5>
+                    {% if not prikaz.utverzhdeno %}
+                    <div>
+                        <button class="btn btn-primary btn-generate mr-2" type="button">
+                            <i class="fas fa-cog"></i> Сформировать приказ
+                        </button>
+                        <button class="btn btn-success btn-utverdit" type="button">
+                            <i class="fas fa-check"></i> Утвердить приказ
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <p><strong>Форма обучения:</strong> {{ prikaz.pk_forma_obucheniya }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Категория обучения:</strong> {{ prikaz.pk_kategoriya_obucheniya }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Статус:</strong> 
+                            {% if prikaz.utverzhdeno %}
+                            <span class="badge badge-success">Утвержден</span>
+                            {% else %}
+                            <span class="badge badge-warning">Черновик</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Таблица студентов -->
+                <table id="studenty_table"
+                       data-toggle="table"
+                       data-search="true"
+                       data-show-columns="true"
+                       data-filter-control="true"
+                       data-pagination="true">
+                    <thead>
+                        <tr>
+                            <th data-field="gruppa" data-sortable="true">Конкурсная группа</th>
+                            <th data-field="fio" data-sortable="true">ФИО</th>
+                            <th data-field="bally" data-sortable="true">Сумма баллов</th>
+                            {% if not prikaz.utverzhdeno %}
+                            <th data-field="actions">Действия</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stroka in stroki %}
+                        <tr>
+                            <td>{{ stroka.pk_zayavlenie.pk_konkursnaya_gruppa.naim }}</td>
+                            <td>
+                                {{ stroka.pk_zayavlenie.pk_lichnoe_delo.pk_fizicheskoe_litso.familiya }}
+                                {{ stroka.pk_zayavlenie.pk_lichnoe_delo.pk_fizicheskoe_litso.imya }}
+                                {{ stroka.pk_zayavlenie.pk_lichnoe_delo.pk_fizicheskoe_litso.otchestvo }}
+                            </td>
+                            <td>{{ stroka.pk_zayavlenie.summa_ballov }}</td>
+                            {% if not prikaz.utverzhdeno %}
+                            <td>
+                                <button class="btn btn-danger btn-sm" 
+                                        onclick="removeStudent('{{ stroka.pk_stroka_prikaza }}')"
+                                        {% if prikaz.utverzhdeno %}disabled{% endif %}>
+                                    <i class="fas fa-trash"></i> Удалить
+                                </button>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Определяем глобальные переменные
+    const prikazId = '{{ prikaz.pk_prikaz }}';
+    let availableStudentsTable;
+
+    $(document).ready(function() {
+        // Инициализация таблицы
+        availableStudentsTable = $('#availableStudentsTable').bootstrapTable({
+            locale: 'ru-RU',
+            search: true,
+            searchAlign: 'left',
+            pagination: true,
+            pageSize: 10,
+            columns: [{
+                field: 'fio',
+                title: 'ФИО'
+            }, {
+                field: 'group',
+                title: 'Конкурсная группа'
+            }, {
+                field: 'balls',
+                title: 'Сумма баллов'
+            }, {
+                field: 'actions',
+                title: 'Действия'
+            }]
+        });
+
+        // Загружаем данные при открытии модального окна
+        $('#addStudentModal').on('shown.bs.modal', function () {
+            searchAvailableStudents('');
+        });
+
+        // Обработчик поиска
+        $('#studentSearch').on('keyup', function() {
+            const searchQuery = $(this).val();
+            searchAvailableStudents(searchQuery);
+        });
+    });
+
+    // Функция для получения CSRF-токена из cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function removeStudent(strokaId) {
+        if (confirm('Вы уверены, что хотите удалить этого студента из приказа?')) {
+            const csrfToken = getCookie('csrftoken');
+            
+            fetch(`/zachislenie/remove-student/${strokaId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при удалении студента');
+            });
+        }
+    }
+
+    function utverditPrikaz(prikazId) {
+        if (confirm('Вы уверены, что хотите утвердить приказ? После утверждения его нельзя будет изменить.')) {
+            const csrfToken = getCookie('csrftoken');
+            
+            fetch(`/zachislenie/utverdit-prikaz/${prikazId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при утверждении приказа');
+            });
+        }
+    }
+
+    // Добавляем обработчик для кнопки утверждения
+    document.addEventListener('DOMContentLoaded', function() {
+        const utverditButton = document.querySelector('.btn-utverdit');
+        if (utverditButton) {
+            utverditButton.addEventListener('click', function() {
+                utverditPrikaz('{{ prikaz.pk_prikaz }}');
+            });
+        }
+    });
+
+    function searchAvailableStudents(query) {
+        const csrfToken = getCookie('csrftoken');
+        
+        fetch(`/zachislenie/search-available-students/${prikazId}/?q=${encodeURIComponent(query)}`, {
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const students = data.students.map(student => ({
+                    fio: student.fio,
+                    group: student.konkursnaya_gruppa,
+                    balls: student.summa_ballov,
+                    actions: `<button class="btn btn-success btn-sm" 
+                             onclick="addStudentToPrikaz('${student.pk_zayavlenie}', '${student.pk_lichnoe_delo}')">
+                             <i class="fas fa-plus"></i> Добавить</button>`
+                }));
+                availableStudentsTable.bootstrapTable('load', students);
+            } else {
+                console.error('Search error:', data.message);
+                availableStudentsTable.bootstrapTable('load', []);
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            availableStudentsTable.bootstrapTable('load', []);
+        });
+    }
+
+    function addStudentToPrikaz(zayavlenieId, lichnoeDeloId) {
+        if (confirm('Вы уверены, что хотите добавить этого студента в приказ?')) {
+            const csrfToken = getCookie('csrftoken');
+            
+            fetch(`/zachislenie/add-student-to-prikaz/${prikazId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    pk_zayavlenie: zayavlenieId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при добавлении студента');
+            });
+        }
+    }
+
+    function generatePrikaz(prikazId) {
+        if (confirm('Вы уверены, что хотите сформировать приказ? Это действие запустит процесс формирования приказа в базе данных.')) {
+            const csrfToken = getCookie('csrftoken');
+            
+            fetch(`/zachislenie/generate-prikaz/${prikazId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Приказ успешно сформирован');
+                    location.reload();
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при формировании приказа');
+            });
+        }
+    }
+
+    // Добавляем обработчик для кнопки формирования
+    document.addEventListener('DOMContentLoaded', function() {
+        const generateButton = document.querySelector('.btn-generate');
+        if (generateButton) {
+            generateButton.addEventListener('click', function() {
+                generatePrikaz('{{ prikaz.pk_prikaz }}');
+            });
+        }
+    });
+    </script>
+
+    <!-- Добавляем кнопку для открытия модального окна добавления студента -->
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Студенты в приказе</h5>
+        {% if not prikaz.utverzhdeno %}
+        <button class="btn btn-light" data-toggle="modal" data-target="#addStudentModal">
+            <i class="fas fa-plus"></i> Добавить студента
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Модальное окно для добавления студента -->
+    <div class="modal fade" id="addStudentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        Добавление студента в приказ 
+                        {% if stroki %}
+                        ({{ stroki.0.pk_zayavlenie.pk_konkursnaya_gruppa.naim }})
+                        {% endif %}
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group mb-3">
+                        <label for="studentSearch">Поиск студента</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="studentSearch" 
+                               placeholder="Введите ФИО студента (минимум 3 символа)">
+                        {% if stroki %}
+                        <small class="form-text text-muted">
+                            Поиск осуществляется только среди студентов конкурсной группы: 
+                            {{ stroki.0.pk_zayavlenie.pk_konkursnaya_gruppa.naim }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    <div class="table-responsive">
+                        <table id="availableStudentsTable"
+                               class="table table-striped"
+                               data-toggle="table"
+                               data-pagination="true"
+                               data-page-size="10">
+                            <thead>
+                                <tr>
+                                    <th data-field="fio">ФИО</th>
+                                    <th data-field="group">Конкурсная группа</th>
+                                    <th data-field="balls">Сумма баллов</th>
+                                    <th data-field="actions">Действия</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
