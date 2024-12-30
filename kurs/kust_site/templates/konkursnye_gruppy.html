@@ -115,7 +115,7 @@
 
                 <!-- Модальное окно для создания группы -->
                 <div class="modal fade" id="createGroupModal" tabindex="-1">
-                    <div class="modal-dialog">
+                    <div class="modal-dialog modal-lg">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title">Создание конкурсной группы</h5>
@@ -124,56 +124,64 @@
                                 </button>
                             </div>
                             <div class="modal-body">
-                                <form id="createGroupForm">
+                                <form id="createGroupForm" class="needs-validation" novalidate>
                                     {% csrf_token %}
-                                    <div class="form-group">
-                                        <label for="nazvanie">Название группы*</label>
-                                        <input type="text" class="form-control" id="nazvanie" name="nazvanie" required>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <!-- Левая колонка -->
+                                            <div class="form-group">
+                                                <label for="nazvanie">Название группы</label>
+                                                <input type="text" class="form-control" id="nazvanie" name="nazvanie" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="forma_obucheniya">Форма обучения</label>
+                                                <select class="form-control" id="forma_obucheniya" name="forma_obucheniya" required>
+                                                    <option value="">Выберите форму обучения</option>
+                                                    {% for forma in formy_obucheniya %}
+                                                        <option value="{{ forma.pk_forma_obucheniya }}">{{ forma.naim }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="uroven_podgotovki">Категория обучения</label>
+                                                <select class="form-control" id="uroven_podgotovki" name="uroven_podgotovki" required>
+                                                    <option value="">Выберите категорию обучения</option>
+                                                    {% for kategoriya in kategorii_obucheniya %}
+                                                        <option value="{{ kategoriya.pk_kategoriya_obucheniya }}">{{ kategoriya.naim }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <!-- Правая колонка -->
+                                            <div class="form-group">
+                                                <label for="plan_nabora">План набора</label>
+                                                <input type="number" class="form-control" id="plan_nabora" name="plan_nabora" min="1" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="daty_podachi">Даты подачи</label>
+                                                <input type="text" class="form-control" id="daty_podachi" name="daty_podachi" readonly>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="pk_kcp">КЦП</label>
+                                                <select class="form-control" id="pk_kcp" name="pk_kcp" required>
+                                                    <option value="">Выберите КЦП</option>
+                                                    {% for kcp in kcps %}
+                                                        <option value="{{ kcp.pk_kcp }}" 
+                                                                data-summa="{{ kcp.summa }}"
+                                                                data-facultet="{{ kcp.pk_facultet.naim|default:'' }}"
+                                                                data-forma="{{ kcp.pk_forma_obucheniya.naim|default:'' }}"
+                                                                data-spec="{{ kcp.pk_spetsialnost.naim|default:'' }}">
+                                                            {{ kcp.pk_spetsialnost.naim|default:'' }} - 
+                                                            {{ kcp.pk_forma_obucheniya.naim|default:'' }} - 
+                                                            {{ kcp.summa }} мест
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="forma_obucheniya">Форма обучения*</label>
-                                        <select class="form-control" id="forma_obucheniya" name="forma_obucheniya" required>
-                                            <option value="">Выберите форму обучения</option>
-                                            {% for forma in formy_obucheniya %}
-                                                <option value="{{ forma.pk_forma_obucheniya }}">{{ forma.naim }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="uroven_podgotovki">Категория обучения*</label>
-                                        <select class="form-control" id="uroven_podgotovki" name="uroven_podgotovki" required>
-                                            <option value="">Выберите категорию обучения</option>
-                                            {% for kategoriya in kategorii_obucheniya %}
-                                                <option value="{{ kategoriya.pk_kategoriya_obucheniya }}">{{ kategoriya.naim }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="plan_nabora">План набора*</label>
-                                        <input type="number" class="form-control" id="plan_nabora" name="plan_nabora" min="1" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="daty_podachi">Даты подачи</label>
-                                        <input type="text" class="form-control" id="daty_podachi" name="daty_podachi" readonly>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="pk_kcp">КЦП*</label>
-                                        <select class="form-control" id="pk_kcp" name="pk_kcp" required>
-                                            <option value="">Выберите КЦП</option>
-                                            {% for kcp in kcps %}
-                                                <option value="{{ kcp.pk_kcp }}" 
-                                                        data-summa="{{ kcp.summa }}"
-                                                        data-facultet="{{ kcp.pk_facultet.naim|default:'' }}"
-                                                        data-forma="{{ kcp.pk_forma_obucheniya.naim|default:'' }}"
-                                                        data-spec="{{ kcp.pk_spetsialnost.naim|default:'' }}">
-                                                    {{ kcp.pk_spetsialnost.naim|default:'' }} - 
-                                                    {{ kcp.pk_forma_obucheniya.naim|default:'' }} - 
-                                                    {{ kcp.summa }} мест
-                                                </option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div id="kcpInfo" class="alert alert-info" style="display: none;">
+                                    <div id="kcpInfo" class="alert alert-info mt-3" style="display: none;">
                                         <h6>Информация о КЦП:</h6>
                                         <p><strong>Факультет:</strong> <span id="kcpFacultet"></span></p>
                                         <p><strong>Специальность:</strong> <span id="kcpSpec"></span></p>
@@ -245,6 +253,111 @@
 
     .daterangepicker .ranges li.active {
         background-color: #17a2b8;
+    }
+
+    /* Стили для модального окна */
+    .modal-dialog {
+        max-width: 800px; /* Увеличиваем ширину */
+        max-height: 90vh; /* Максимальная высота 90% от высоты экрана */
+    }
+
+    .modal-content {
+        max-height: 90vh;
+    }
+
+    .modal-body {
+        max-height: calc(90vh - 120px); /* Вычитаем высоту header и footer */
+        overflow-y: auto; /* Добавляем прокрутку */
+        padding: 1.5rem;
+    }
+
+    /* Стилизация скролла */
+    .modal-body::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .modal-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb {
+        background: #17a2b8;
+        border-radius: 4px;
+    }
+
+    /* Делаем форму более компактной */
+    .modal-body .form-group {
+        margin-bottom: 1rem;
+    }
+
+    /* Стили для полей формы */
+    .modal-body .form-control {
+        padding: 0.375rem 0.75rem;
+    }
+
+    /* Стили для информационного блока */
+    #kcpInfo {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 4px;
+    }
+
+    #kcpInfo p {
+        margin-bottom: 0.5rem;
+    }
+
+    /* Фиксированные header и footer */
+    .modal-header, .modal-footer {
+        position: sticky;
+        background: white;
+        z-index: 1;
+    }
+
+    .modal-header {
+        top: 0;
+    }
+
+    .modal-footer {
+        bottom: 0;
+    }
+
+    /* Адаптивность для маленьких экранов */
+    @media (max-height: 600px) {
+        .modal-dialog {
+            margin: 0.5rem;
+        }
+
+        .modal-body {
+            padding: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-body .form-control {
+            padding: 0.25rem 0.5rem;
+        }
+    }
+
+    /* Улучшенный стиль для select */
+    .modal-body select.form-control {
+        height: auto;
+        padding-right: 30px;
+    }
+
+    /* Стили для обязательных полей */
+    .modal-body label:after {
+        content: '*';
+        color: red;
+        margin-left: 4px;
+    }
+
+    .modal-body label:not([for="daty_podachi"]):after {
+        content: '*';
+        color: red;
+        margin-left: 4px;
     }
     </style>
 

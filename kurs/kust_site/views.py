@@ -15,7 +15,7 @@ from django.views.decorators.http import require_GET, require_POST
 from django.db.models import Q, Count
 from django.forms.models import model_to_dict
 import json
-from django.db import transaction, models
+from django.db import transaction, models, IntegrityError
 from datetime import datetime
 from django.db import connection
 from django.contrib.auth.decorators import login_required
@@ -25,35 +25,56 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 logger = logging.getLogger(__name__)
 
+@transaction.atomic
 def dynamic_view(request, model_name, pk=None):
     model = apps.get_model('kust_site', model_name)
-    data = model.objects.all()
-    fields = model._meta.fields
+    
+    if request.method == 'POST':
+        try:
+            if pk:
+                instance = model.objects.get(pk=pk)
+                form = modelform_factory(model, fields='__all__')(request.POST, instance=instance)
+            else:
+                form = modelform_factory(model, fields='__all__')(request.POST)
+                
+                pk_field = model._meta.pk.name
+                
+                if not pk and pk_field:
+                    max_pk = model.objects.aggregate(models.Max(pk_field))[f'{pk_field}__max']
+                    next_pk = (max_pk or 0) + 1
+                    
+                    if form.is_valid():
+                        instance = form.save(commit=False)
+                        setattr(instance, pk_field, next_pk)
+                        instance.save()
+                        return redirect(f'/data/{model_name}/')
 
-    # Создаем форму на основе модели, исключая первичный ключ
-    Form = modelform_factory(model, fields=[field.name for field in fields if not field.get_internal_type() == 'AutoField'])
-
-    # Обработка редактирования
-    if pk is not None:
-        instance = get_object_or_404(model, pk=pk)
-        form = Form(request.POST or None, instance=instance)
+            if form.is_valid():
+                form.save()
+                return redirect(f'/data/{model_name}/')
+        except IntegrityError as e:
+            messages.error(request, f'Ошибка сохранения: {str(e)}')
+        except Exception as e:
+            messages.error(request, f'Произошла ошибка: {str(e)}')
     else:
-        form = Form(request.POST or None)
+        if pk:
+            instance = model.objects.get(pk=pk)
+            form = modelform_factory(model, fields='__all__')(instance=instance)
+        else:
+            form = modelform_factory(model, fields='__all__')()
 
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        return redirect('dynamic_view', model_name=model_name)
-
+    fields = [f for f in model._meta.get_fields() if not f.many_to_many and not f.one_to_many]
+    data = model.objects.all().select_related()
+    
     context = {
+        'form': form,
+        'fields': fields,
         'data': data,
         'model_name': model_name,
-        'fields': fields,
-        'form': form,
         'editing': pk is not None,
-        'fields_count': len(fields),
-        'fields_count_plus_one': len(fields) + 1  # Добавлено новое значение для дальнейшего использования в шаблоне
+        'fields_count_plus_one': len(fields) + 1
     }
-
+    
     return render(request, 'dynamic_template.html', context)
 
 
