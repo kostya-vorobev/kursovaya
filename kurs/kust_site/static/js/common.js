@@ -950,35 +950,36 @@ const AppManager = {
             // Обработчик удаления заявления
             $(document).on('click', '.delete-zayavlenie', function(e) {
                 e.preventDefault();
-                console.log('Delete button clicked'); // Отладочный вывод
+                e.stopPropagation();
                 
                 // Получаем ID из data-атрибута
-                const zayavlenieId = $(this).attr('data-id');
-                console.log('Button clicked, ID:', zayavlenieId);
+                const zayavlenieId = $(this).data('id') || $(this).attr('data-id');
+                console.log('Delete button clicked, ID:', zayavlenieId);
                 
-                // Отладочная информация
-                console.log('Button data attributes:', $(this).data());
-                console.log('Button HTML:', $(this).prop('outerHTML'));
-                
-                if (!zayavlenieId) {
+                if (!zayavlenieId && zayavlenieId !== 0) {
                     console.error('ID не найден в кнопке');
-                    alert('Ошибка: ID Заявления не найден');
+                    alert('Ошибка: ID заявления не найден');
                     return;
                 }
 
                 if (confirm('Вы действительно хотите удалить это заявление?')) {
+                    const csrfToken = $('input[name=csrfmiddlewaretoken]').val();
+                    
                     $.ajax({
                         url: '/delete_zayavlenie/',
                         type: 'POST',
                         data: {
-                            zayavlenie_id: zayavlenieId
+                            zayavlenie_id: zayavlenieId,
+                            csrfmiddlewaretoken: csrfToken
+                        },
+                        beforeSend: function(xhr) {
+                            xhr.setRequestHeader('X-CSRFToken', csrfToken);
                         },
                         success: function(response) {
                             console.log('Response:', response);
                             if (response.success) {
-                                // Находим и удаляем строку из таблицы
-                                const $row = $(`[data-zayavlenie-id="${zayavlenieId}"]`).closest('tr');
-                                $row.remove();
+                                // Обновляем таблицу
+                                refreshZayavlenieTable();
                                 alert('Заявление успешно удалено');
                             } else {
                                 alert(response.error || 'Ошибка при удалении заявления');
@@ -1406,56 +1407,19 @@ const AppManager = {
 };
 
 // Глобальный форматтер для кнопки удаления
-window.actionFormatter = (function() {
-    // Кэш для уже отформатированных кнопок
-    const cache = new Map();
+window.actionFormatter = function(value, row) {
+    const id = row.id || row.pk || row.pk_zayavlenie || row.zayavlenie_id;
     
-    return function(value, row) {
-        // Создаем уникальный ключ для кэша
-        const cacheKey = row.id || row.napravlenie + row.prioritet;
-        
-        // Если кнопка уже была отформатирована, возвращаем из кэша
-        if (cache.has(cacheKey)) {
-            return cache.get(cacheKey);
-        }
-        
-        // Получаем ID
-        let id;
-        if (row.actions && typeof row.actions === 'string') {
-            const match = row.actions.match(/data-id="(\d+)"/);
-            if (match) {
-                id = match[1];
-            }
-        }
-        if (!id) {
-            id = row.id || row.pk || row.pk_zayavlenie || row.zayavlenie_id;
-        }
-        
-        // Создаем HTML кнопки
-        const buttonHtml = id ? 
-            `<div class="btn-group" role="group">
-                <button type="button" 
-                        class="btn btn-danger btn-sm delete-zayavlenie" 
-                        data-id="${id}" 
-                        data-zayavlenie-id="${id}"
-                        title="Удалить">
-                    <i class="bi bi-trash"></i> Удалить
-                </button>
-            </div>` :
-            `<div class="btn-group" role="group">
-                <button type="button" 
-                        class="btn btn-danger btn-sm delete-zayavlenie disabled" 
-                        title="ID не найден">
-                    <i class="bi bi-trash"></i> Удалить
-                </button>
-            </div>`;
-            
-        // Сохраняем в кэш
-        cache.set(cacheKey, buttonHtml);
-        
-        return buttonHtml;
-    };
-})();
+    return `
+        <button type="button" 
+                class="btn btn-danger btn-sm delete-zayavlenie" 
+                data-id="${id}" 
+                data-zayavlenie-id="${id}"
+                title="Удалить">
+            <i class="bi bi-trash"></i> Удалить
+        </button>
+    `;
+};
 
 window.actionEvents = {
     'click .delete-zayavlenie': function(e, value, row) {
